@@ -21,8 +21,16 @@ make test
   depuis l'en-tête, les doublons (même jeu, même date) sont ignorés.
 - La base n'est qu'un cache : rien à sauvegarder. Un redémarrage recharge simplement
   les CSV.
-- Pas d'import depuis l'interface : pour mettre à jour l'historique, ajouter un nouveau
-  CSV dans `DATA_DIR` (en Kubernetes : via l'init job / volume) et redémarrer.
+- Pas d'import depuis l'interface. Les CSV sont versionnés dans `data/` et embarqués
+  dans l'image.
+
+### Mettre à jour l'historique
+
+1. Télécharger le dernier export FDJ et le déposer dans `data/` (tous les fichiers sont
+   chargés ; un export complet plus récent peut cohabiter avec les anciens, les tirages
+   en double sont ignorés).
+2. Commit + push sur `main` : la CI publie une nouvelle image.
+3. Redémarrer le déploiement (`kubectl rollout restart`) pour la prendre.
 - Les grilles générées ne sont pas stockées.
 
 ## Configuration (variables d'environnement)
@@ -47,12 +55,21 @@ make test
   de redirection `${BASE_URL}/auth/callback`.
 - Routes publiques : `/login`, `/auth/*`, `/static/*`, `/healthz`, `/readyz`.
 
+## Image
+
+- Publiée par GitHub Actions (`.github/workflows/image.yml`) à chaque push sur `main` :
+  `ghcr.io/kmathelot/loto-stats-webapp:latest` et `:sha-<commit>`, linux/amd64.
+  Les tests (`go vet`, `go test`) tournent avant le build.
+- Distroless, non-root, ~27 Mo, `data/` inclus.
+- En local : `make docker`.
+- Le premier push crée un package GHCR **privé** : soit le rendre public (Package
+  settings › Change visibility), soit fournir un `imagePullSecret` au cluster.
+
 ## Kubernetes (à venir)
 
-- Image : `make docker` (distroless, non-root, `data/` inclus par défaut).
 - Sondes : `GET /healthz` (liveness), `GET /readyz` (prêt une fois les CSV chargés).
 - Arrêt propre sur `SIGTERM`.
-- Données : monter un volume sur `DATA_DIR`, rempli par un init container.
+- Données : celles de l'image. Un volume monté sur `DATA_DIR` reste possible plus tard.
 - Chaque pod a sa propre base en mémoire, construite depuis les mêmes CSV : les
   répliques sont identiques et sans état partagé.
 
