@@ -12,7 +12,7 @@ WORKDIR /app
 COPY --from=build /out/loto-stats /app/loto-stats
 # Default history, loaded at startup. In Kubernetes, DATA_DIR can point to a
 # volume filled by an init container instead.
-COPY data/ /app/data/
+COPY --chmod=0755 data/ /app/data/
 ENV LISTEN_ADDR=:8080 DATA_DIR=/app/data
 EXPOSE 8080
 USER nonroot:nonroot

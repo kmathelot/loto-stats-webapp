@@ -198,14 +198,9 @@ p { margin: 0; }
 .segmented a[aria-current="true"] { background: var(--accent); color: var(--on-fill); font-weight: 600; }
 .user { display: flex; align-items: center; gap: 8px; color: var(--muted); text-decoration: none; }
 .user img { border-radius: 50%; }
-.flash {
-  max-width: 1280px; margin: 16px auto 0; padding: 10px 16px; border-radius: var(--radius);
-  background: var(--accent-soft); border: 1px solid var(--accent-soft-border); color: var(--text);
-}
 @media (max-width: 720px) {
   .topbar { padding: 12px 16px; }
   .container { padding: 20px 16px; }
-  .flash { margin: 12px 16px 0; }
 }
 
 /* ---- Buttons & inputs --------------------------------------------------------- */
@@ -326,6 +321,10 @@ html:not([data-theme]) .icon-moon, [data-theme="dark"] .icon-moon { display: non
 .heat.strong { border-color: var(--heat-strong); }
 .heat-n { font: 700 15px var(--font-mono); }
 .heat-f { font: 500 11px var(--font-mono); color: var(--text-2); }
+/* 10-column map (EuroMillions): give it ~2/3 of the row so cells keep the Loto size. */
+@media (min-width: 961px) {
+  .freq-wide { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+}
 .heat-legend { display: flex; align-items: center; gap: 10px; }
 .heat-gradient { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(90deg, rgb(var(--heat-neg) / 0.63), rgb(var(--heat-neg) / 0.08) 50%, rgb(var(--heat-pos) / 0.08) 50%, rgb(var(--heat-pos) / 0.63)); }
 .freq-row { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; gap: 10px; font-size: 13px; }
@@ -406,15 +405,5 @@ html:not([data-theme]) .icon-moon, [data-theme="dark"] .icon-moon { display: non
 #resultats.htmx-swapping, #resultats.htmx-request { opacity: 0.7; }
 
 /* ---- Dialog & login ------------------------------------------------------------- */
-.dialog {
-  width: min(520px, calc(100vw - 32px)); padding: 24px; border-radius: var(--radius-lg);
-  border: 1px solid var(--border); background: var(--surface); color: var(--text);
-}
-.dialog::backdrop { background: rgb(0 0 0 / 0.55); }
-.dropzone {
-  display: flex; flex-direction: column; gap: 8px; padding: 18px; border-radius: var(--radius);
-  border: 1px dashed var(--border-strong); background: var(--inset); cursor: pointer;
-}
-.dropzone .label { font-weight: 600; }
 .login-page { display: flex; align-items: center; justify-content: center; padding: 16px; }
 .login { width: min(420px, 100%); gap: 18px; padding: 28px; }

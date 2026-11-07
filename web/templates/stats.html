@@ -23,7 +23,7 @@
   <div class="card kpi"><span class="eyebrow">Verdict χ²</span><span class="kpi-value {{if $d.ChiOK}}accent-text{{else}}late-text{{end}}">{{if $d.ChiOK}}Compatible hasard{{else}}Écart significatif{{end}}</span></div>
 </div>
 
-<section id="freq" class="two-col" aria-labelledby="h-freq">
+<section id="freq" class="two-col {{if gt $d.HeatCols 7}}freq-wide{{end}}" aria-labelledby="h-freq">
   <div class="card stack">
     <div class="row-between wrap">
       <h2 id="h-freq" class="h2">Carte des fréquences</h2>

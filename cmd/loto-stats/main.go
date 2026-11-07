@@ -50,7 +50,7 @@ func run(log *slog.Logger) error {
 		log.Warn("authentification désactivée (AUTH_ENABLED=false) : ne pas exposer publiquement")
 	}
 
-	srv, err := server.New(st, authn, log, cfg.MaxUpload)
+	srv, err := server.New(st, authn, log)
 	if err != nil {
 		return err
 	}

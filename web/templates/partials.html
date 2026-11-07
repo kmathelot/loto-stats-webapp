@@ -1,31 +1,6 @@
-{{define "import-dialog"}}
-<dialog id="import-dialog" class="dialog" aria-labelledby="import-title">
-  <form class="stack" hx-post="/import" hx-encoding="multipart/form-data" hx-target="#import-result" hx-disabled-elt="find button[type=submit]">
-    <div class="row-between">
-      <h2 id="import-title" class="h2">Importer un historique</h2>
-      <button type="button" class="btn btn-icon" data-close-dialog aria-label="Fermer">
-        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
-      </button>
-    </div>
-    <p class="muted">Export CSV de la FDJ (séparateur « ; »). Le jeu, Loto ou EuroMillions, est détecté depuis l'en-tête ; les tirages déjà connus sont ignorés.</p>
-    <label class="dropzone">
-      <span class="label">Fichier CSV</span>
-      <input type="file" name="fichier" accept=".csv,text/csv" required>
-    </label>
-    <input type="hidden" name="retour" value="{{.Path}}">
-    <div id="import-result" aria-live="polite"></div>
-    <p class="note">Les tirages importés ici sont conservés jusqu'au prochain redémarrage. Pour les garder durablement, il faut ajouter le CSV au dossier de données chargé au démarrage.</p>
-    <div class="row-end">
-      <button type="button" class="btn btn-ghost" data-close-dialog>Annuler</button>
-      <button type="submit" class="btn btn-primary">Importer</button>
-    </div>
-  </form>
-</dialog>
-{{end}}
-
 {{define "empty"}}
 <div class="card empty">
   <p>Aucun tirage {{.Game.Name}} en base.</p>
-  <button type="button" class="btn btn-primary" data-open-dialog="import-dialog">Importer un CSV</button>
+  <p class="note">Ajoute un export CSV FDJ dans le dossier de données puis redémarre l'application.</p>
 </div>
 {{end}}
