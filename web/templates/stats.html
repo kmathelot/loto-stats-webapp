@@ -1,0 +1,156 @@
+{{define "content"}}
+{{$d := .Data}}
+<div class="row-between wrap">
+  <div class="stack-sm">
+    <h1 class="h1">Statistiques</h1>
+    <p class="muted">{{.Game.Name}} · {{.Stats.N}} tirages{{if .From}}, du {{.From}} au {{.To}}{{end}}</p>
+  </div>
+  <nav class="subnav" aria-label="Sections">
+    <a href="#freq">Fréquences</a>
+    <a href="#ecarts">Écarts</a>
+    <a href="#comp">{{.Game.CompTitle}}</a>
+    <a href="#sommes">Sommes &amp; parité</a>
+    <a href="#chi2">Uniformité χ²</a>
+  </nav>
+</div>
+
+{{if $d.Empty}}{{template "empty" .}}{{else}}
+
+<div class="kpis">
+  <div class="card kpi"><span class="eyebrow">Plus sorti</span><span class="kpi-value">n°{{$d.Most}} <span class="kpi-unit">{{$d.MostF}}×</span></span></div>
+  <div class="card kpi"><span class="eyebrow">Moins sorti</span><span class="kpi-value">n°{{$d.Least}} <span class="kpi-unit">{{$d.LeastF}}×</span></span></div>
+  <div class="card kpi"><span class="eyebrow">Plus gros retard</span><span class="kpi-value">n°{{$d.Late}} <span class="kpi-unit">{{$d.LateGap}} tirages</span></span></div>
+  <div class="card kpi"><span class="eyebrow">Verdict χ²</span><span class="kpi-value {{if $d.ChiOK}}accent-text{{else}}late-text{{end}}">{{if $d.ChiOK}}Compatible hasard{{else}}Écart significatif{{end}}</span></div>
+</div>
+
+<section id="freq" class="two-col" aria-labelledby="h-freq">
+  <div class="card stack">
+    <div class="row-between wrap">
+      <h2 id="h-freq" class="h2">Carte des fréquences</h2>
+      <span class="small muted">écart à la fréquence attendue ({{$d.Expected}})</span>
+    </div>
+    <div class="heatmap" style="--cols: {{$d.HeatCols}}">
+      {{range $d.Heat}}
+      <div class="heat {{if .Pos}}pos{{else}}neg{{end}} {{if .Strong}}strong{{end}}" style="--a: {{.Alpha}}">
+        <span class="heat-n">{{.N}}</span><span class="heat-f">{{.F}}</span>
+      </div>
+      {{end}}
+    </div>
+    <div class="heat-legend small muted"><span>moins sorti</span><span class="heat-gradient" aria-hidden="true"></span><span>plus sorti</span></div>
+  </div>
+  <div class="card stack">
+    <h3 class="h3">Top 10</h3>
+    {{range $d.Top}}{{template "freq-row" .}}{{end}}
+    <h3 class="h3 mt">Low 10</h3>
+    {{range $d.Low}}{{template "freq-row" .}}{{end}}
+  </div>
+</section>
+
+<div class="two-col">
+  <section id="ecarts" class="card stack" aria-labelledby="h-ec">
+    <div class="row-between wrap">
+      <h2 id="h-ec" class="h2">Écarts — numéros absents</h2>
+      <span class="small muted">ratio = écart actuel / écart moyen du numéro</span>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th scope="col">N°</th><th scope="col">Écart</th><th scope="col">Vu le</th><th scope="col">Ratio</th></tr></thead>
+        <tbody>
+          {{range $d.Gaps}}
+          <tr>
+            <td><span class="ball ball-sm {{if .Late}}late{{else}}neutral{{end}}">{{.N}}</span></td>
+            <td class="mono strong">{{.Gap}}</td>
+            <td class="mono muted">{{.Seen}}</td>
+            <td><div class="bar-cell"><span class="bar"><span class="{{if .Late}}late{{else}}faint{{end}}" style="width: {{.W}}%"></span></span><span class="mono">×{{.Ratio}}</span></div></td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="comp" class="card stack" aria-labelledby="h-comp">
+    <div class="row-between wrap">
+      <h2 id="h-comp" class="h2">{{.Game.CompTitle}}</h2>
+      <span class="small muted">sorties · écart</span>
+    </div>
+    {{range $d.Comps}}
+    <div class="comp-row mono">
+      <span class="ball ball-sm comp">{{.N}}</span>
+      <span class="bar"><span class="chance" style="width: {{.W}}%"></span></span>
+      <span>{{.F}}</span>
+      <span class="{{if .Late}}warn-text{{else}}muted{{end}}">écart {{.Gap}}</span>
+    </div>
+    {{end}}
+  </section>
+</div>
+
+<section id="sommes" class="two-col" aria-label="Sommes et parité">
+  <div class="card stack">
+    <h2 class="h2">Somme des 5 boules</h2>
+    <div class="histogram" aria-hidden="true">
+      {{range $d.Bins}}<div class="hist-col"><span class="hist-pct">{{.Pct}}</span><span class="hist-bar {{if .Major}}major{{end}}" style="height: {{.H}}px"></span></div>{{end}}
+    </div>
+    <div class="hist-labels">{{range $d.Bins}}<span>{{.Label}}</span>{{end}}</div>
+    <div class="summary-grid">
+      <div class="summary"><div class="small muted">Moyenne</div><div class="mono summary-value">{{fr1 $d.Sums.Mean}} <span class="muted small">th. {{fr1 $d.Sums.Theo}}</span></div></div>
+      <div class="summary"><div class="small muted">Écart-type</div><div class="mono summary-value">{{fr1 $d.Sums.StdDev}}</div></div>
+      <div class="summary"><div class="small muted">Médiane</div><div class="mono summary-value">{{$d.Sums.Median}}</div></div>
+      <div class="summary"><div class="small muted">Min · max</div><div class="mono summary-value">{{$d.Sums.Min}} · {{$d.Sums.Max}}</div></div>
+      <div class="summary"><div class="small muted">{{$d.SumRange}}</div><div class="mono summary-value">{{pct $d.Sums.InFilterPct}}</div></div>
+      <div class="summary"><div class="small muted">Dans [100;150]</div><div class="mono summary-value">{{pct $d.Sums.InCorePct}}</div></div>
+    </div>
+  </div>
+  <div class="card stack">
+    <div class="row-between wrap">
+      <h2 class="h2">Parité &amp; bas/haut</h2>
+      <div class="legend">
+        <span><span class="swatch observed" aria-hidden="true"></span>observé</span>
+        <span><span class="swatch theo" aria-hidden="true"></span>théorique</span>
+      </div>
+    </div>
+    <h3 class="h3">Nombre de pairs</h3>
+    {{range $d.Evens}}{{template "dist-row" .}}{{end}}
+    <h3 class="h3 mt">{{$d.LowLabel}}</h3>
+    {{range $d.Lows}}{{template "dist-row" .}}{{end}}
+  </div>
+</section>
+
+<section id="chi2" class="card stack" aria-labelledby="h-chi">
+  <div class="row-between wrap">
+    <h2 id="h-chi" class="h2">Test d'uniformité (χ²)</h2>
+    <span class="small muted">p &gt; 0,05 : rien ne distingue la distribution d'un hasard uniforme</span>
+  </div>
+  <div class="chi-grid">
+    {{range $d.Chi}}
+    <div class="chi stack-sm">
+      <div class="row-between"><span class="strong">{{.Label}}</span><span class="mono small muted">χ²={{.Chi}} · ddl={{.DF}}</span></div>
+      <div class="pscale" aria-hidden="true"><span class="pscale-zone"></span><span class="pscale-mark" style="left: {{.Pos}}%"></span></div>
+      <div class="row-between mono small muted"><span>0 · suspect</span><span>p ≈ {{.P}}</span><span>1</span></div>
+      <span class="{{if .OK}}accent-text{{else}}late-text{{end}} small">→ {{if .OK}}compatible avec le hasard{{else}}écart significatif{{end}}</span>
+    </div>
+    {{end}}
+  </div>
+  <p class="note">{{$d.ChiFooter}}</p>
+</section>
+{{end}}
+{{end}}
+
+{{define "freq-row"}}
+<div class="freq-row mono">
+  <span class="strong">{{.N}}</span>
+  <span class="bar"><span class="accent" style="width: {{.W}}%"></span></span>
+  <span class="muted">{{.F}}</span>
+</div>
+{{end}}
+
+{{define "dist-row"}}
+<div class="dist-row mono">
+  <span>{{.K}}</span>
+  <div class="dist-bars">
+    <span class="observed" style="width: {{.WO}}%"></span>
+    <span class="theo" style="width: {{.WT}}%"></span>
+  </div>
+  <span class="muted">{{.Obs}}</span>
+</div>
+{{end}}
