@@ -1,11 +1,9 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"log/slog"
-	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -24,7 +22,7 @@ func newTestServer(t *testing.T) http.Handler {
 	if _, err := st.ImportDir(context.Background(), "../../data"); err != nil {
 		t.Fatal(err)
 	}
-	s, err := New(st, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), 10<<20)
+	s, err := New(st, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,23 +50,5 @@ func TestGeneratePartial(t *testing.T) {
 	h.ServeHTTP(rec, req)
 	if n := strings.Count(rec.Body.String(), "grid-card"); n != 3 {
 		t.Fatalf("want 3 grids, got %d", n)
-	}
-}
-
-func TestImportUpload(t *testing.T) {
-	h := newTestServer(t)
-	var body bytes.Buffer
-	mw := multipart.NewWriter(&body)
-	fw, _ := mw.CreateFormFile("fichier", "x.csv")
-	fw.Write([]byte("date_de_tirage;jour_de_tirage;boule_1;boule_2;boule_3;boule_4;boule_5;numero_chance\n01/01/2030;MARDI;1;2;3;4;5;6\n"))
-	mw.WriteField("retour", "/stats")
-	mw.Close()
-	req := httptest.NewRequest("POST", "/import", &body)
-	req.Header.Set("Content-Type", mw.FormDataContentType())
-	req.Header.Set("HX-Request", "true")
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, req)
-	if got := rec.Header().Get("HX-Redirect"); got != "/stats?importe=1&jeu=loto" {
-		t.Fatalf("HX-Redirect=%q body=%s", got, rec.Body.String())
 	}
 }

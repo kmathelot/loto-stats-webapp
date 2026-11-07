@@ -23,10 +23,9 @@ import (
 const gameCookie = "jeu"
 
 type Server struct {
-	store     *store.Store
-	auth      *auth.Authenticator
-	log       *slog.Logger
-	maxUpload int64
+	store *store.Store
+	auth  *auth.Authenticator
+	log   *slog.Logger
 
 	pages map[string]*template.Template
 	ready atomic.Bool
@@ -35,8 +34,8 @@ type Server struct {
 	cache map[string]*lottery.Stats
 }
 
-func New(st *store.Store, a *auth.Authenticator, log *slog.Logger, maxUpload int64) (*Server, error) {
-	s := &Server{store: st, auth: a, log: log, maxUpload: maxUpload, cache: map[string]*lottery.Stats{}}
+func New(st *store.Store, a *auth.Authenticator, log *slog.Logger) (*Server, error) {
+	s := &Server{store: st, auth: a, log: log, cache: map[string]*lottery.Stats{}}
 	if err := s.parseTemplates(); err != nil {
 		return nil, err
 	}
@@ -79,7 +78,6 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("POST /generer", s.generatePartial)
 	mux.HandleFunc("GET /stats", s.statsPage)
 	mux.HandleFunc("GET /verifier", s.verifyPage)
-	mux.HandleFunc("POST /import", s.importCSV)
 
 	public := func(p string) bool {
 		return p == "/healthz" || p == "/readyz" || p == auth.LoginPath ||
@@ -119,13 +117,6 @@ func (s *Server) stats(ctx context.Context, g lottery.Game) (*lottery.Stats, err
 	return st, nil
 }
 
-// Invalidate drops cached statistics (after an import).
-func (s *Server) Invalidate() {
-	s.mu.Lock()
-	s.cache = map[string]*lottery.Stats{}
-	s.mu.Unlock()
-}
-
 // currentGame reads ?jeu= (and remembers it in a cookie) or falls back to the cookie.
 func (s *Server) currentGame(w http.ResponseWriter, r *http.Request) lottery.Game {
 	if code := r.URL.Query().Get("jeu"); code != "" {
@@ -153,7 +144,6 @@ type Page struct {
 	From, To    string
 	User        auth.User
 	AuthEnabled bool
-	Flash       string
 	Data        any
 }
 
@@ -172,9 +162,6 @@ func (s *Server) page(w http.ResponseWriter, r *http.Request, title, active stri
 		p.From, p.To = shortDate(st.Draws[0].Date), shortDate(st.Draws[st.N()-1].Date)
 	}
 	p.User, _ = auth.UserFrom(r.Context())
-	if n := r.URL.Query().Get("importe"); n != "" {
-		p.Flash = fmt.Sprintf("Import terminé : %s nouveau(x) tirage(s) %s.", n, g.Name)
-	}
 	return p, nil
 }
 

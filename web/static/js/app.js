@@ -16,18 +16,6 @@
     try { localStorage.setItem("theme", next); } catch (err) {}
   });
 
-  // ---- Dialogs ---------------------------------------------------------------
-  document.addEventListener("click", function (e) {
-    var open = e.target.closest("[data-open-dialog]");
-    if (open) {
-      var d = document.getElementById(open.dataset.openDialog);
-      if (d) d.showModal();
-      return;
-    }
-    var close = e.target.closest("[data-close-dialog]");
-    if (close) close.closest("dialog").close();
-  });
-
   // ---- Copy a grid to the clipboard -----------------------------------------
   document.addEventListener("click", function (e) {
     var btn = e.target.closest("[data-copy]");

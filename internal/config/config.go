@@ -12,10 +12,9 @@ import (
 )
 
 type Config struct {
-	Addr      string // LISTEN_ADDR, default ":8080"
-	DataDir   string // DATA_DIR: CSV files loaded at startup, default "./data"
-	DBPath    string // DB_PATH: SQLite file; empty = in-memory (default)
-	MaxUpload int64  // MAX_UPLOAD_MB, default 10
+	Addr    string // LISTEN_ADDR, default ":8080"
+	DataDir string // DATA_DIR: CSV files loaded at startup, default "./data"
+	DBPath  string // DB_PATH: SQLite file; empty = in-memory (default)
 
 	Auth Auth
 }
@@ -37,12 +36,7 @@ func Load() (Config, error) {
 		DataDir: env("DATA_DIR", "./data"),
 		DBPath:  os.Getenv("DB_PATH"),
 	}
-	mb, err := strconv.Atoi(env("MAX_UPLOAD_MB", "10"))
-	if err != nil || mb <= 0 {
-		return c, fmt.Errorf("MAX_UPLOAD_MB invalide : %q", os.Getenv("MAX_UPLOAD_MB"))
-	}
-	c.MaxUpload = int64(mb) << 20
-
+	var err error
 	c.Auth.Enabled, err = boolEnv("AUTH_ENABLED", false)
 	if err != nil {
 		return c, err

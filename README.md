@@ -21,9 +21,8 @@ make test
   depuis l'en-tête, les doublons (même jeu, même date) sont ignorés.
 - La base n'est qu'un cache : rien à sauvegarder. Un redémarrage recharge simplement
   les CSV.
-- Le bouton **Importer** permet de déposer un CSV FDJ. Ces tirages sont **éphémères** :
-  ils disparaissent au redémarrage. Pour les garder, ajouter le fichier à `DATA_DIR`
-  (en Kubernetes : le fournir via l'init job / volume).
+- Pas d'import depuis l'interface : pour mettre à jour l'historique, ajouter un nouveau
+  CSV dans `DATA_DIR` (en Kubernetes : via l'init job / volume) et redémarrer.
 - Les grilles générées ne sont pas stockées.
 
 ## Configuration (variables d'environnement)
@@ -33,7 +32,6 @@ make test
 | `LISTEN_ADDR` | `:8080` | adresse d'écoute |
 | `DATA_DIR` | `./data` | CSV chargés au démarrage |
 | `DB_PATH` | *(vide = mémoire)* | fichier SQLite, utile pour du debug |
-| `MAX_UPLOAD_MB` | `10` | taille max d'un CSV déposé |
 | `AUTH_ENABLED` | `false` | active la connexion Google |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | | client OAuth « Application Web » |
 | `BASE_URL` | | URL publique, ex. `https://loto.example.com` |
@@ -55,8 +53,8 @@ make test
 - Sondes : `GET /healthz` (liveness), `GET /readyz` (prêt une fois les CSV chargés).
 - Arrêt propre sur `SIGTERM`.
 - Données : monter un volume sur `DATA_DIR`, rempli par un init container.
-- Une seule réplique conseillée tant que des imports manuels sont faits (chaque pod a
-  sa propre base en mémoire).
+- Chaque pod a sa propre base en mémoire, construite depuis les mêmes CSV : les
+  répliques sont identiques et sans état partagé.
 
 ## Arborescence
 
