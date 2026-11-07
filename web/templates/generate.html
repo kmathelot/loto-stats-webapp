@@ -1,0 +1,124 @@
+{{define "content"}}
+{{$d := .Data}}
+<div class="generate-layout">
+  <aside class="stack-lg">
+    <div class="stack-sm">
+      <h1 class="h1">Générer une grille</h1>
+      <p class="muted lead">Choisis une stratégie, puis regarde où la grille se situe par rapport à l'historique.</p>
+    </div>
+
+    <form id="gen-form" class="stack-lg" action="/" method="get"
+          hx-post="/generer" hx-target="#grilles" hx-trigger="submit, change" hx-sync="this:replace">
+      <input type="hidden" name="envoye" value="1">
+
+      <fieldset class="stack-sm">
+        <legend class="eyebrow">Stratégie</legend>
+        {{range $d.Strategies}}
+        <label class="choice">
+          <input type="radio" name="strategie" value="{{.ID}}" {{if .Checked}}checked{{end}}>
+          <span class="choice-body">
+            <span class="choice-title">{{.Label}}</span>
+            <span class="choice-desc">{{.Desc}}</span>
+          </span>
+        </label>
+        {{end}}
+      </fieldset>
+
+      <div class="stack-sm">
+        <label class="eyebrow" for="nb">Grilles par stratégie</label>
+        <div class="stepper" data-stepper>
+          <button type="button" class="btn btn-square" data-step="-1" aria-label="Une grille de moins">−</button>
+          <input id="nb" name="nb" type="number" inputmode="numeric" min="1" max="{{$d.MaxCount}}" value="{{$d.Form.Count}}">
+          <button type="button" class="btn btn-square" data-step="1" aria-label="Une grille de plus">+</button>
+        </div>
+      </div>
+
+      <fieldset class="stack-sm">
+        <legend class="eyebrow">Filtres de vraisemblance</legend>
+        <div class="pills">
+          {{range $d.Filters}}
+          <label class="pill">
+            <input type="checkbox" name="{{.Name}}" value="1" {{if .Checked}}checked{{end}}>
+            <span class="pill-dot" aria-hidden="true"></span>{{.Label}}
+          </label>
+          {{end}}
+        </div>
+        <p class="note">Écarte les grilles atypiques ({{fr1 $.Stats.Sums.InFilterPct}} % des tirages ont une somme entre {{.Game.SumMin}} et {{.Game.SumMax}}). Ça ne change pas tes chances, ça évite juste les grilles « bizarres ».</p>
+      </fieldset>
+
+      <button type="submit" class="btn btn-primary btn-lg">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 4v5h-5"></path></svg>
+        Générer
+      </button>
+    </form>
+
+    <div class="odds">
+      <span class="small muted">Probabilité du rang 1 (5 numéros + {{if eq .Game.CompCount 1}}chance{{else}}{{.Game.CompCount}} étoiles{{end}})</span>
+      <span class="mono odds-value">1 sur {{$d.Odds}}</span>
+      <span class="note">Identique pour toutes les stratégies : chaque tirage est indépendant.</span>
+    </div>
+  </aside>
+
+  <section class="stack" aria-labelledby="h-res">
+    <div class="row-between wrap">
+      <h2 id="h-res" class="h2">Tes grilles</h2>
+      <div class="legend">
+        <span><span class="ball-dot hot" aria-hidden="true"></span>Chaud (top 10)</span>
+        <span><span class="ball-dot late" aria-hidden="true"></span>En retard (écart ≥ 2× moyen)</span>
+        <span><span class="ball-dot neutral" aria-hidden="true"></span>Neutre</span>
+        <span><span class="ball-dot comp" aria-hidden="true"></span>{{if eq .Game.CompCount 1}}Chance{{else}}Étoile{{end}}</span>
+      </div>
+    </div>
+    <div id="grilles" class="stack" aria-live="polite">
+      {{if $d.Empty}}{{template "empty" .}}{{else}}{{template "grids" $d}}{{end}}
+    </div>
+  </section>
+</div>
+{{end}}
+
+{{define "grids"}}
+{{range .Grids}}
+<article class="card grid-card">
+  <div class="grid-head">
+    <div class="grid-title">
+      <span class="eyebrow">{{.Tag}}</span>
+      <span class="h3">{{.Label}}</span>
+    </div>
+    <div class="balls" role="list" aria-label="Numéros">
+      {{range .Balls}}<span role="listitem" class="ball ball-lg {{.Kind}}">{{.N}}</span>{{end}}
+      <span class="plus" aria-hidden="true">+</span>
+      {{range .Comps}}<span role="listitem" class="ball ball-lg comp" aria-label="Complémentaire {{.}}">{{.}}</span>{{end}}
+    </div>
+    <div class="grid-actions">
+      <a class="btn btn-icon" href="{{.VerifyURL}}" aria-label="Vérifier cette grille" title="Vérifier cette grille">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      </a>
+      <button type="button" class="btn btn-icon" data-copy="{{.Copy}}" aria-label="Copier la grille" title="Copier la grille">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+      </button>
+    </div>
+  </div>
+  <div class="metrics">
+    <div class="metric">
+      <div class="row-between"><span class="small muted">Somme</span><span class="mono metric-value">{{.Sum}}</span></div>
+      <div class="sparkbars" aria-hidden="true">{{range .Bins}}<span class="{{if .On}}on{{end}}" style="height: {{.H}}px"></span>{{end}}</div>
+      <span class="note">{{.SumNote}}</span>
+    </div>
+    <div class="metric">
+      <div class="row-between"><span class="small muted">Pairs / impairs</span><span class="mono metric-value">{{.Evens}} / {{.Odds}}</span></div>
+      <div class="meter"><div style="width: {{.EvenW}}%"></div></div>
+      <span class="note">{{.EvenNote}}</span>
+    </div>
+    <div class="metric">
+      <div class="row-between"><span class="small muted">Bas (1–{{$.Low}}) / haut</span><span class="mono metric-value">{{.Lows}} / {{.Highs}}</span></div>
+      <div class="meter"><div style="width: {{.LowW}}%"></div></div>
+      <span class="note">{{.LowNote}}</span>
+    </div>
+    <div class="metric metric-dashed">
+      <div class="row-between"><span class="small muted">Fréquence moy.</span><span class="mono metric-value">{{.FreqDelta}}</span></div>
+      <span class="note">{{.FreqNote}}</span>
+    </div>
+  </div>
+</article>
+{{end}}
+{{end}}

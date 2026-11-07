@@ -1,0 +1,134 @@
+{{define "content"}}
+{{$d := .Data}}
+<div class="stack-sm">
+  <h1 class="h1">Vérifier &amp; historique</h1>
+  <p class="muted lead">Compose une grille : elle est confrontée en direct aux {{.Stats.N}} tirages {{.Game.Name}}.</p>
+</div>
+
+{{if $d.Empty}}{{template "empty" .}}{{else}}
+<form id="verif" class="verify-layout" action="/verifier" method="get"
+      hx-get="/verifier" hx-target="#resultats" hx-swap="outerHTML"
+      hx-trigger="change from:.picker, input changed delay:300ms from:#q, submit"
+      hx-sync="this:replace">
+  <input type="hidden" name="jeu" value="{{.Game.Code}}">
+
+  <section class="card stack picker area-pick" aria-labelledby="h-pick">
+    <div class="row-between wrap">
+      <h2 id="h-pick" class="h2">Ma grille</h2>
+      {{template "sel-count" $d}}
+    </div>
+    <fieldset class="ball-picker" data-limit="5" style="--cols: {{if eq .Game.Balls 49}}7{{else}}10{{end}}">
+      <legend class="sr-only">Numéros 1 à {{.Game.Balls}}</legend>
+      {{range $d.Cells}}<label class="pick"><input type="checkbox" name="b" value="{{.N}}" {{if .On}}checked{{end}}><span>{{.N}}</span></label>{{end}}
+    </fieldset>
+    <fieldset class="stack-sm">
+      <legend class="eyebrow">{{.Game.CompTitle}}{{if gt .Game.CompCount 1}} ({{.Game.CompCount}}){{end}}</legend>
+      <div class="comp-picker" data-limit="{{.Game.CompCount}}" style="--cols: {{.Game.CompMax}}">
+        {{range $d.CompCells}}<label class="pick pick-comp"><input type="checkbox" name="c" value="{{.N}}" {{if .On}}checked{{end}}><span>{{.N}}</span></label>{{end}}
+      </div>
+    </fieldset>
+    <div class="row wrap">
+      <a class="btn btn-ghost" href="/verifier?jeu={{.Game.Code}}">Effacer</a>
+      <a class="btn btn-ghost" href="/verifier?jeu={{.Game.Code}}&amp;hasard=1">Grille au hasard</a>
+      <a class="btn btn-link" href="/">← Reprendre une grille générée</a>
+    </div>
+    <noscript><button type="submit" class="btn btn-primary">Vérifier</button></noscript>
+  </section>
+
+  {{template "verify-results" $d}}
+
+  <section class="card stack area-hist" aria-labelledby="h-hist">
+    <div class="row-between wrap">
+      <h2 id="h-hist" class="h2">Historique des tirages</h2>
+      <div class="row wrap">
+        <label for="q" class="small muted">Contient le n°</label>
+        <input id="q" class="input mono" type="text" name="q" inputmode="numeric" placeholder="ex. 31" value="{{$d.Q}}" autocomplete="off">
+        {{template "pager" $d}}
+      </div>
+    </div>
+    {{template "history" .}}
+  </section>
+</form>
+{{end}}
+{{end}}
+
+{{/* htmx response: the results card, plus out-of-band updates of the counter, pager and table. */}}
+{{define "verify-results"}}
+<section id="resultats" class="stack area-res" aria-labelledby="h-res">
+  <div class="card stack">
+    <div class="row-between wrap">
+      <h2 id="h-res" class="h2">Si tu l'avais jouée à chaque tirage</h2>
+      <span class="small muted">{{.Verdict}}</span>
+    </div>
+    {{if .Ready}}
+    <div class="rank-grid">
+      {{range .Ranks}}
+      <div class="rank {{if .Count}}hit{{end}}">
+        <span class="small muted">{{.Label}}</span>
+        <span class="mono small">{{.Key}}</span>
+        <span class="mono rank-count">{{.Count}}</span>
+      </div>
+      {{end}}
+    </div>
+    {{else}}
+    <p class="placeholder">Choisis 5 numéros (et {{.CompHint}}) pour voir les résultats.</p>
+    {{end}}
+  </div>
+  {{if .Ready}}
+  <div class="card stack-sm">
+    <h3 class="h3">Tirages les plus proches</h3>
+    {{range .Best}}
+    <div class="near-row">
+      <span class="mono small muted near-date">{{.Date}}</span>
+      {{template "draw-balls" .}}
+      <span class="mono strong accent-text near-score">{{.Score}}</span>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+</section>
+{{if .OOB}}{{template "sel-count-oob" .}}{{end}}
+{{end}}
+
+{{define "sel-count"}}<span id="sel-count" class="mono small muted">{{len .Balls}} / 5 · {{.CompName}} {{if .Comps}}{{join .Comps " "}}{{else}}—{{end}}</span>{{end}}
+
+{{define "sel-count-oob"}}
+<span id="sel-count" hx-swap-oob="true" class="mono small muted">{{len .Balls}} / 5 · {{.CompName}} {{if .Comps}}{{join .Comps " "}}{{else}}—{{end}}</span>
+<span id="pager" hx-swap-oob="true" class="row">{{template "pager-inner" .}}</span>
+<div id="history" hx-swap-oob="true" class="table-wrap">{{template "history-table" .}}</div>
+{{end}}
+
+{{define "pager"}}<span id="pager" class="row">{{template "pager-inner" .}}</span>{{end}}
+{{define "pager-inner"}}
+<span class="mono small muted">{{.RangeLabel}}</span>
+<button type="submit" name="page" value="{{.PrevPage}}" class="btn btn-square" aria-label="Page précédente" {{if not .HasPrev}}disabled{{end}}>‹</button>
+<button type="submit" name="page" value="{{.NextPage}}" class="btn btn-square" aria-label="Page suivante" {{if not .HasNext}}disabled{{end}}>›</button>
+{{end}}
+
+{{define "history"}}<div id="history" class="table-wrap">{{template "history-table" .Data}}</div>{{end}}
+{{define "history-table"}}
+<table class="table history">
+  <thead><tr><th scope="col">Date</th><th scope="col">Boules</th><th scope="col">Compl.</th><th scope="col">Somme</th><th scope="col">Pairs</th><th scope="col">Ma grille</th></tr></thead>
+  <tbody>
+    {{range .Rows}}
+    <tr class="mono">
+      <td class="muted">{{.Day}} {{.Date}}</td>
+      <td><div class="balls-inline">{{range .Balls}}<span class="ball ball-sm {{if .Hit}}hot{{else}}outline{{end}}">{{.N}}</span>{{end}}</div></td>
+      <td><div class="balls-inline">{{range .Comps}}<span class="ball ball-sm {{if .Hit}}comp{{else}}comp-outline{{end}}">{{.N}}</span>{{end}}</div></td>
+      <td>{{.Sum}}</td>
+      <td>{{.Evens}}</td>
+      <td class="strong accent-text">{{.Score}}</td>
+    </tr>
+    {{else}}
+    <tr><td colspan="6" class="muted">Aucun tirage ne correspond.</td></tr>
+    {{end}}
+  </tbody>
+</table>
+{{end}}
+
+{{define "draw-balls"}}
+<div class="balls-inline">
+  {{range .Balls}}<span class="ball ball-md {{if .Hit}}hot{{else}}outline{{end}}">{{.N}}</span>{{end}}
+  {{range .Comps}}<span class="ball ball-md {{if .Hit}}comp{{else}}comp-outline{{end}}">{{.N}}</span>{{end}}
+</div>
+{{end}}
